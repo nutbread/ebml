@@ -1,0 +1,479 @@
+\h4 ebml Module \id=ebml
+
+\p
+	The following functions are available in the module and are used for encoding/decoding file-like streams.
+
+\fn decode
+	\obj ebml
+	\desc Decodes an EBML formatted stream into a document object model.
+	\return ElementContainer
+		\desc A root object which contains the document nodes.
+	\arg schema
+		\type ebml.Schema
+		\desc The document semantics schema
+	\arg stream
+		\type input_stream
+		\desc The input stream to read from
+	\throws StreamError
+	\throws DecodeError
+
+\fn encode
+	\obj ebml
+	\desc Encodes an EBML element into an output stream
+	\arg element
+		\type ebml.Element
+		\desc The element which should be output to the stream.
+			Typically this will be a root element
+	\arg stream
+		\type input_stream
+		\desc The output stream to write to
+	\arg pointers_temporary
+		\type boolean
+		\default True
+		\desc Any pointer elements are to be temporary, and will return to being pointers after their data is used
+	\throws EncodeError
+	\throws DecodeError
+
+\member INT
+	\obj ebml
+	\also UINT
+	\also FLOAT
+	\also STRING
+	\also UNICODE
+	\also DATE
+	\also CONTAINER
+	\also BINARY
+	\id TYPE_CONSTANT
+	\desc These are the type constants included in the module for schema definitions
+
+
+
+\h4 Schema \id=Schema
+
+\p
+	The <code>Schema</code> object is used to define the semantic information for decoding and validating an EBML document.
+
+\fn Schema
+	\obj ebml
+	\desc Creates a new <code>Schema</code> which is used for decoding and creating nodes
+	\return Schema
+		\desc A newly created <code>Schema</code> object which should have element definitions performed on
+
+\fn define
+	\obj Schema
+	\desc Creates an element definition in the schema
+	\arg id
+		\type list | tuple | string | bytes
+		\desc The binary id which is used when writing the file. If the value is invalid, an exception will be raised.<br />
+			If this value is a <code>list</code> or <code>tuple</code>, each entry of the object will be treated as a byte.<br />
+			If this value is a <code>string</code>, each set of <code>2</code> characters will be treated as a hexadecimal byte.<br />
+			If this value is a <code>bytes</code> object, each character will be treated as a byte.
+	\arg name
+		\type string
+		\desc The name of the element; it should be meaningful for humans.
+			This is used for element creation and xml-ification.
+	\arg el_type
+		\type TYPE_CONSTANT
+		\desc This should be one of the type constants specified in the module
+	\arg level
+		\default "g"
+		\type string | integer
+		\desc If this value is an integer, then it can only appear on the specified level.<br />
+			If this value is <code>"g"</code>, then it can appear anywhere in the document.<br />
+			If this value is a string formatted as <code>"#+"</code>, then it can appear on level <code>#</code> and deeper. (it is recursive)
+	\arg versions
+		\default 0
+		\type integer
+		\desc A set of version bit-flags specifying which version this feature appears in.
+			If the value is <code>0</code>, it can appear in any version.
+	\arg validator
+		\default None
+		\type function
+		\desc A validation function which takes one input (the value) and should return <code>True</code> if it's valid, and <code>False</code> otherwise
+	\arg pointer
+		\default False
+		\type boolean
+		\desc <code>True</code> if this value should be loaded as a pointer (the reading of its value from the input stream will be deferred), or <code>False</code> otherwise
+	\return ebml.ElementDescriptor
+		\desc A new element descriptor object is returned
+	\throws SchemaError
+
+\fn element
+	\obj Schema
+	\desc Creates an element given an element name or descriptor
+	\arg name
+		\type string | ebml.ElementDescriptor
+		\desc If this value is a string, it uses the descriptor with the specified name property in the schema.<br />
+			If this value is an <code>ebml.ElementDescriptor</code> returned from a <code>.define</code> call, it creates an element of the descriptor's type.
+	\arg value
+		\default None
+		\type any
+		\desc The initial value to give the element.
+			This value will vary depending on the type of element being created, as it simply calls the element's <code>.set</code> function
+	\return ebml.Element
+		\desc The newly created element which can be added to a document object model
+	\throws SchemaError
+	\throws ElementError
+
+\fn root
+	\obj Schema
+	\desc Creates a root container for the schema. The root container's metadata is not written to the output stream when encoding, only its children are
+	\return ebml.ElementContainer
+
+\member pointers_enabled
+	\value True
+	\obj Schema
+	\desc Set to <code>True</code> if the schema is allowed to decode data into pointers, or <code>False</code> if pointers should not be allowed
+
+\member version
+	\value 0
+	\obj Schema
+	\desc Sets the version number of the schema. If the value is <code>0</code>, no version checking is performed.
+		Otherwise, it is performed as a bitwise <code>&amp;</code> operator:
+		if the <code>&</code>'d value is not <code>0</code>, the element's version is considered valid
+
+\member strict_unicode
+	\value Schema.STRICT
+	\obj Schema
+	\desc The strictness level for UTF8 decoding
+
+\member strict_string
+	\value Schema.STRICT
+	\obj Schema
+	\desc The strictness level for ASCII string decoding
+
+\member strict_missing_id
+	\value Schema.WARN
+	\obj Schema
+	\desc The strictness level for elements in the document with IDs that are not in the schema
+
+\member strict_version_check
+	\value Schema.WARN
+	\obj Schema
+	\desc The strictness level for checking the version of elements
+
+\member strict_data_length
+	\value Schema.STRICT
+	\obj Schema
+	\desc The strictness level for making sure the decoded length of elements is correct
+
+\member strict_validator
+	\value Schema.STRICT
+	\obj Schema
+	\desc The strictness level for using the validation functions on elements' values
+
+\member STRICT
+	\obj Schema
+	\also WARN
+	\also IGNORE
+	\id STRICTNESS
+	\desc These class constants can be used to set the strictness settings of a schema
+	\readonly
+
+
+
+
+\h4 Element \id=Element
+
+\p
+	The following functions are available on all <code>Element</code> instances.
+	However, certain functions may not be implemented for certain subclasses, so they may raise exceptions.
+
+\fn get
+	\obj Element
+	\desc Gets the value of an element. If the element is currently a pointer, it is decoded before returning the value
+	\arg decode_depth
+		\default -1
+		\type integer
+		\desc This parameter sets how many descendent elements should also be decoded if the element is a pointer.<br />
+			Negative values indicate all descendents should be decoded, unless the schema indicates otherwise.<br />
+			<code>0</code> indicates only the element itself should be decoded, all child elements will be pointers.<br />
+			<code>1</code> indicates only element and its first level children should be decoded, all other elements will be pointers...<br />
+			And so on
+	\return any
+		\desc The return type will vary depending on the type of element.
+	\throws DecodeError
+
+\fn set
+	\obj Element
+	\desc Sets the value of an element. If the value is invalid, an exception will be raised
+	\arg value
+		\type any (not None)
+		\desc The value to apply to the element. The type and validity of this value depends on the type of the element and the schema
+	\throws ElementError
+
+\fn clear
+	\obj Element
+	\desc Clears the value to the default value for the element.<br />
+		For string-type elements, this is an empty string.<br />
+		For numeric-type elements, this is a <code>0</code>.<br />
+		For container-type elements, this removes all child elements.
+	\throws ElementError
+
+\fn is_pointer
+	\obj Element
+	\desc Checks if an element is a pointer or not
+	\return boolean
+		\desc <code>True</code> if the element is a pointer, <code>False</code> otherwise
+
+\fn to_pointer
+	\obj Element
+	\desc Converts an element to a pointer.
+		If the element was not decoded from a stream, it cannot be converted to a pointer
+	\throws ElementError
+
+\fn get_tag_name
+	\obj Element
+	\desc Returns the tag name for the element.
+		This is the same value as the <code>name</code> specified in the schema
+	\return string
+		\desc The tag name
+
+\fn get_full_size
+	\obj Element
+	\desc Returns the size in bytes that the element would take up in a stream
+	\return integer
+		\desc The size in bytes that the element would take up in a stream
+
+\fn insert
+	\obj Element
+	\desc Add a child element to a container element. If the <code>self</code> object is not a container element, an exception will be raised.
+	\arg element
+		\type ebml.Element
+		\desc The element that should be inserted
+	\arg before
+		\type ebml.Element
+		\default None
+		\desc If the value is not <code>None</code>, the element will be inserted before this child element.
+	\arg after
+		\type ebml.Element
+		\default None
+		\desc If <code>before</code> is <code>None</code>, and the value is not <code>None</code>, the element will be inserted after this child element.
+	\arg prepend
+		\type boolean
+		\default False
+		\desc If <code>before</code> and <code>after</code> are both <code>None</code>, this parameter specifies where the new element should be inserted.<br />
+			If the value is <code>False</code>, it's inserted after all of the children as the last element.<br />
+			If the value is <code>True</code>, it's inserted before all of the children as the first element.
+	\throws ElementError
+
+\fn remove_child
+	\obj Element
+	\desc Removes a child element from a container element
+	\arg element
+		\type ebml.Element
+		\desc The child element to remove
+	\throws ElementError
+
+\fn remove
+	\obj Element
+	\desc Removes this element from its container element, if any
+
+\fn is_child
+	\obj Element
+	\desc Checks if an element is the child of the <code>self</code> element
+	\arg element
+		\type ebml.Element
+		\desc The child element to check
+	\return boolean
+		\desc <code>True</code> if it is a child, <code>False</code> otherwise
+	\throws ElementError
+
+\fn to_xml
+	\obj Element
+	\desc Converts the element to a human-readable form.
+		This is useful for testing and finding where elements are.
+		Element values may be shortened for readability, such as binary values.
+	\return string
+		\desc A human-readable XML document string
+	\throws ElementError
+
+\member parent
+	\obj Element
+	\type ebml.ContainerElement | None
+	\desc The parent of the element
+	\readonly
+
+\member previous_sibling
+	\obj Element
+	\type ebml.Element | None
+	\desc The previous sibling of the element
+	\readonly
+
+\member next_sibling
+	\obj Element
+	\type ebml.Element | None
+	\desc The next sibling of the element
+	\readonly
+
+\member level
+	\obj Element
+	\type integer
+	\desc The depth of the element in the DOM tree. Root elements have a depth of <code>-1</code>
+	\readonly
+
+
+
+\h4 ElementDate's Date class \id=ElementDate
+
+\p
+	The following class is used to provide high-precision date objects for encoding/decoding dates.
+
+\fn Date
+	\obj ebml.ElementDate
+	\desc Creates a new date object to be used with ElementDate elements
+	\arg year, month, day, hour=0, minute=0, second=0, nanoseconds=0
+		\type string
+		\desc A selector string to construct the selector from
+	\return Selector
+		\desc A newly created selector object
+	\throws SelectorError
+
+
+
+
+\h4 Selector \id=Selector
+
+\p
+	EBML selectors are similar to <a class="link_external light_underline" href="https://developer.mozilla.org/en-US/docs/Web/Guide/CSS/Getting_started/Selectors" target="_blank"><span>CSS selectors</span></a>, and are used to easily select elements out of a document.
+	The exact syntax of a valid selector string will not be described, as it is mostly identical to the standard CSS selectors.
+
+\p
+	The following are the available selectors:
+
+\p
+	<ul class="selector_list selector_list_no_indent">
+		<li>
+			<div class="selector_list_label">element_name</div>
+			<div class="selector_list_desc"><span>Selects elements by name</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">*</div>
+			<div class="selector_list_desc"><span>Selects every element</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">[value]</div>
+			<div class="selector_list_desc"><span>Selects elements with the specified value</span><span class="selector_list_subscript">[1]</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">:root</div>
+			<div class="selector_list_desc"><span>Selects only root elements</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">:empty</div>
+			<div class="selector_list_desc"><span>Selects elements with no children</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">:first-child</div>
+			<div class="selector_list_desc"><span>Selects elements that have no previous sibling</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">:first-of-type</div>
+			<div class="selector_list_desc"><span>Selects elements that have no previous siblings of the same type</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">:last-child</div>
+			<div class="selector_list_desc"><span>Selects elements that have no following sibling</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">:last-of-type</div>
+			<div class="selector_list_desc"><span>Selects elements that have no following siblings of the same type</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">:not(...)</div>
+			<div class="selector_list_desc"><span>Selects the inverse of the specified selector</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">:nth-child(...)</div>
+			<div class="selector_list_desc"><span>Selects the nth child of any element given an n-expression</span><span class="selector_list_subscript">[2]</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">:nth-of-type(...)</div>
+			<div class="selector_list_desc"><span>Selects the nth child of a certian type of any element</span><span class="selector_list_subscript">[2]</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">:nth-last-child(...)</div>
+			<div class="selector_list_desc"><span>Selects the nth last child of any element</span><span class="selector_list_subscript">[2]</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">:nth-last-of-type(...)</div>
+			<div class="selector_list_desc"><span>Selects the nth last child of a certian type of any element</span><span class="selector_list_subscript">[2]</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">:pointer</div>
+			<div class="selector_list_desc"><span>Selects elements that are pointers</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">:type(...)</div>
+			<div class="selector_list_desc"><span>Select elements of a certain type</span><span class="selector_list_subscript">[3]</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">selector1,selector2</div>
+			<div class="selector_list_desc"><span>Select elements that match either of the specified expressions</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">selector1>selector2</div>
+			<div class="selector_list_desc"><span>Select elements that are direct children of another element</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">selector1 selector2</div>
+			<div class="selector_list_desc"><span>Select elements that are descendants of another element</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">selector1+selector2</div>
+			<div class="selector_list_desc"><span>Select elements that immediately follow another element</span></div>
+		</li>
+		<li>
+			<div class="selector_list_label">selector1~selector2</div>
+			<div class="selector_list_desc"><span>Select elements that follow another element</span></div>
+		</li>
+	</ul>
+
+\p
+	<ul class="selector_list">
+		<li data-index="[1]">
+			Value matching depends on the type of element
+		</li>
+		<li data-index="[2]">
+			n-expressions are the same as those in CSS; e.g. <code>3n+1</code>, <code>n+4</code>, <code>n</code>, <code>4</code>
+		</li>
+		<li data-index="[3]">
+			The type can be any one of the type constants defined on the module, only as a lowercase string<br />
+			e.g. <code>"int"</code> represents <code>ebml.INT</code> elements
+		</li>
+	</ul>
+
+\fn Selector
+	\obj ebml
+	\desc Creates a new selector object
+	\arg selector
+		\type string
+		\desc A selector string to construct the selector from
+	\return Selector
+		\desc A newly created selector object
+	\throws SelectorError
+
+\fn matches
+	\obj Selector
+	\desc Returns if an element matches the selector or not
+	\arg element
+		\type ebml.Element
+		\desc The element to start compare against
+	\return boolean
+
+\fn select
+	\obj Selector
+	\arg element
+		\type ebml.Element
+		\desc The element to start comparing in. If this element is a container, all descendents are checked as well
+	\return ebml.Element | None
+		\desc The first match found is returned, or <code>None</code> if no matches are found
+
+\fn select_all
+	\obj Selector
+	\arg element
+		\type ebml.Element
+		\desc The element to start comparing in. If this element is a container, all descendents are checked as well
+	\return list
+		\desc A list of all elements matching the selector
+
