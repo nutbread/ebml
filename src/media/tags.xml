@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE Tags SYSTEM "matroskatags.dtd">
+<Tags>
+	<Tag>
+		<Simple>
+			<Name>title</Name>
+			<String>Test Video</String>
+		</Simple>
+		<Simple>
+			<Name>comment</Name>
+			<String>Test comment</String>
+		</Simple>
+	</Tag>
+</Tags>

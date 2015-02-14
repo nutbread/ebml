@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE Chapters SYSTEM "matroskachapters.dtd">
+<Chapters>
+	<EditionEntry>
+		<ChapterAtom>
+			<ChapterTimeStart>00:00:30.000</ChapterTimeStart>
+			<ChapterTimeEnd>00:01:00.000</ChapterTimeEnd>
+			<ChapterDisplay>
+				<ChapterString>Example chapter 1: 30s to 60s</ChapterString>
+				<ChapterLanguage>eng</ChapterLanguage>
+			</ChapterDisplay>
+			<ChapterAtom>
+				<ChapterTimeStart>00:00:40.000</ChapterTimeStart>
+				<ChapterTimeEnd>00:00:50.000</ChapterTimeEnd>
+				<ChapterDisplay>
+					<ChapterString>Example chapter 2: 40s to 50s</ChapterString>
+					<ChapterLanguage>eng</ChapterLanguage>
+				</ChapterDisplay>
+			</ChapterAtom>
+		</ChapterAtom>
+	</EditionEntry>
+</Chapters>
+<!-- mkvmerge.exe -o testc.mkv test1.mkv --chapters chapters.xml -->
