@@ -70,6 +70,8 @@ textarea:focus {
 
 .hardlink_text {
 	vertical-align: middle;
+	display: inline-block;
+	position: relative;
 }
 .hardlink_text:not(:hover)>a.hardlink {
 	visibility: hidden;

@@ -237,7 +237,14 @@ class NodeWriter(object):
 			node = parent.attributes[i];
 
 			# Skip
-			if (node.type not in descriptor.tags): continue;
+			if (node.type not in descriptor.tags):
+				i += 1;
+				if (i >= attr_count):
+					if (nw_pre is not None):
+						nw_pre.group_end(node_pre, None);
+					break;
+				continue;
+
 			d = descriptor.tags[node.type];
 
 			# Change
@@ -255,7 +262,7 @@ class NodeWriter(object):
 			# Next
 			i += 1;
 			if (i >= attr_count):
-				nw.group_end(node, nw_pre);
+				nw.group_end(node, None);
 				break;
 
 			node_pre = node;

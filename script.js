@@ -216,6 +216,28 @@
 
 
 
+	// Navigation changing
+	var nav = {
+		go: function (hash, replace) {
+			// Setup url
+			var url = window.location.pathname,
+				i;
+
+			if (hash !== null) {
+				url += hash;
+			}
+
+			if (replace) {
+				window.history.replaceState({}, "", url);
+			}
+			else {
+				window.history.pushState({}, "", url);
+			}
+		},
+	};
+
+
+
 	// Functions
 	var on_doc_name_click = function (event) {
 		// find doc_block parent
