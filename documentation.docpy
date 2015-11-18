@@ -322,12 +322,33 @@
 \fn Date
 	\obj ebml.ElementDate
 	\desc Creates a new date object to be used with ElementDate elements
-	\arg year, month, day, hour=0, minute=0, second=0, nanoseconds=0
-		\type string
-		\desc A selector string to construct the selector from
-	\return Selector
-		\desc A newly created selector object
-	\throws SelectorError
+	\arg year
+		\type integer
+		\desc The year
+	\arg month
+		\type integer
+		\desc The month of the year, between 1 and 12 (inclusive)
+	\arg day
+		\type integer
+		\desc The day of the month, between 1 and the number of days in the month (inclusive)
+	\arg hour
+		\type integer
+		\default 0
+		\desc The hour, between 0 and 23 (inclusive)
+	\arg minute
+		\type integer
+		\default 0
+		\desc The minute, between 0 and 59 (inclusive)
+	\arg second
+		\type integer
+		\default 0
+		\desc The second, between 0 and 59 (inclusive)
+	\arg nanoseconds
+		\type integer
+		\default 0
+		\desc The number of nanoseconds, between 0 and 1e-9
+	\return ebml.ElementDate.Date
+		\desc A newly created date object
 
 
 
